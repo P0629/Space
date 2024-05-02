@@ -58,6 +58,12 @@ def display_game_over():
 def draw_shots(shots):
     for shot in shots:
         pygame.draw.rect(screen, (255, 0, 0), shot)
+    
+# Funktion zum Anzeigen des Scores
+def display_score(score):
+    font = pygame.font.SysFont(None, 30)
+    score_text = font.render("Score: " + str(score), True, (255,255,255))
+    screen.blit(score_text, (10, 10))
 
 # Hauptspiel
 def main():
@@ -65,6 +71,8 @@ def main():
     enemies = []
     shots = []  # Liste für die Schüsse des Spielers
     shoot_cooldown = 0
+    score = 0   # Score des Spielers
+    score_timer = 0 # Initialisierung des Score-Timers
 
     running = True
     game_over = False  # Spielstatus verfolgen
@@ -135,6 +143,15 @@ def main():
             # Reduziere die Abklingzeit für Schüsse
             if shoot_cooldown > 0:
                 shoot_cooldown -= 1
+
+             # Aktualisiere den Score-Timer und füge Bonuspunkte hinzu, wenn der Timer abläuft
+            score_timer += 1
+            if score_timer == 60:  # Füge alle 60 Frames (1 Sekunde) Bonuspunkte hinzu
+                score += 5
+                score_timer = 0
+
+            # Zeichne Score
+            display_score(score)
 
         if game_over:
             display_game_over()  # GAME OVER anzeigen
