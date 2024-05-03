@@ -1,5 +1,6 @@
 import pygame
 import random
+import sys
 
 # Initialisierung von Pygame
 pygame.init()
@@ -48,11 +49,41 @@ def move_enemies(enemies):
     for enemy in enemies:
         enemy[0].y += ENEMY_SPEED
 
-# Funktion um GAME OVER anzuzeigen
+# Funktion um GAME OVER anzuzeigen und Optionen für Neustart oder Beenden
 def display_game_over():
     font = pygame.font.SysFont(None, 48)
     game_over_text = font.render("GAME OVER", True, (255, 255, 0))
     screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - game_over_text.get_height() // 2))
+    
+    # Schriftart für die Buttons
+    button_font = pygame.font.SysFont(None, 30)
+    
+    # Button "Neu starten"
+    restart_button = pygame.Rect(WIDTH // 4, HEIGHT // 2 + 50, WIDTH // 4, 50)
+    pygame.draw.rect(screen, (0, 255, 0), restart_button)
+    restart_text = button_font.render("Neu starten", True, (0, 0, 0))
+    screen.blit(restart_text, (restart_button.centerx - restart_text.get_width() // 2, restart_button.centery - restart_text.get_height() // 2))
+    
+    # Button "Beenden"
+    quit_button = pygame.Rect(WIDTH // 2 + WIDTH // 4, HEIGHT // 2 + 50, WIDTH // 4, 50)
+    pygame.draw.rect(screen, (255, 0, 0), quit_button)
+    quit_text = button_font.render("Beenden", True, (0, 0, 0))
+    screen.blit(quit_text, (quit_button.centerx - quit_text.get_width() // 2, quit_button.centery - quit_text.get_height() // 2))
+    
+    pygame.display.flip()
+    
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                if restart_button.collidepoint(mouse_pos):
+                    return True  # Neustart auswählen
+                elif quit_button.collidepoint(mouse_pos):
+                    pygame.quit()
+                    sys.exit()
 
 # Funktion zum Zeichnen von Schüssen
 def draw_shots(shots):
@@ -154,7 +185,11 @@ def main():
             display_score(score)
 
         if game_over:
-            display_game_over()  # GAME OVER anzeigen
+            if display_game_over():
+                # Wenn "Neu starten" ausgewählt wurde, setze das Spiel zurück
+                main()
+            else:
+                running = False
 
         pygame.display.flip()
         clock.tick(60)
