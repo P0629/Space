@@ -157,6 +157,15 @@ def display_restart_menu():
 
 # Hauptspiel
 def main():
+    global ENEMY_SPEED # Zugriff auf die globale Variable
+
+    # Ursprüngliche Geschwindigkeit der Gegner nach Neustart
+    original_enemy_speed = ENEMY_SPEED
+
+    enemy_speed_increase_timer = 0 # Initialisierung der Variable
+    enemy_speed_increase_interval = 5000 # Timerintervall für die Geschwindigkeitserhöhung
+    enemy_speed_increase_amount = 1 # Betrag, um den die Geschwindigkeit des Feindes erhöht wird
+
     while True:  # Spielenschleife für Neustarts
         player = pygame.Rect(WIDTH // 2 - PLAYER_WIDTH // 2, HEIGHT - 50, PLAYER_WIDTH, PLAYER_HEIGHT)
         enemies = []
@@ -167,6 +176,9 @@ def main():
 
         running = True
         game_over = False  # Spielstatus verfolgen
+
+        # Zurücksetzen der Geschwindigkeit auf Anfangswert
+        ENEMY_SPEED = original_enemy_speed
 
         while running:
             screen.blit(background, (0, 0)) # Hintergrund zeichnen
@@ -200,6 +212,12 @@ def main():
                 if random.randint(0, ENEMY_INTERVAL) == 0:
                     enemy, enemy_type = create_enemy()
                     enemies.append((enemy, enemy_type))
+                
+                # Erhöhe die Geschwindigkeit der Feinde basierend auf den Timer
+                enemy_speed_increase_timer += clock.get_time()
+                if enemy_speed_increase_timer >= enemy_speed_increase_interval:
+                    ENEMY_SPEED += enemy_speed_increase_amount
+                    enemy_speed_increase_timer = 0
 
                 # Bewege Schüsse und entferne sie, wenn sie den Bildschirm verlassen
                 for shot in shots[:]:
