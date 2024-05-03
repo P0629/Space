@@ -1,0 +1,14 @@
+xx,105
+jjj,85
+xxx,75
+james,60
+rr,55
+k,55
+Peter,40
+x,15
+j,10
+ttt,10
+k,10
+h,10
+z,5
+h,5

@@ -1,6 +1,7 @@
 import pygame
 import random
 import sys
+import os
 
 # Initialisierung von Pygame
 pygame.init()
@@ -32,10 +33,29 @@ enemy2_image = pygame.transform.scale(enemy2_image, (ENEMY_WIDTH, ENEMY_HEIGHT))
 background = pygame.image.load("background.jpg")
 background = pygame.transform.scale(background, (WIDTH, HEIGHT))
 
+# Datei für Highscores
+HIGHSCORE_FILE = "highscores.txt"
+
 # Initialisierung des Bildschirms
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Weiche den Feinden aus")
 clock = pygame.time.Clock()
+
+# Funktion zum Laden der Highscores aus der Datei
+def load_highscores():
+    if not os.path.exists(HIGHSCORE_FILE):
+        return []
+    with open(HIGHSCORE_FILE, "r") as file:
+        lines = file.readlines()
+        highscores = [line.strip().split(",") for line in lines]
+        highscores.sort(key=lambda x: int(x[1]), reverse=True)
+        return highscores
+
+# Funktion zum Speichern der Highscores in die Datei
+def save_highscores(highscores):
+    with open(HIGHSCORE_FILE, "w") as file:
+        for name, score in highscores:
+            file.write(f"{name},{score}\n")
 
 # Funktion zum Erzeugen eines neuen Gegners
 def create_enemy():
@@ -50,40 +70,52 @@ def move_enemies(enemies):
         enemy[0].y += ENEMY_SPEED
 
 # Funktion um GAME OVER anzuzeigen und Optionen für Neustart oder Beenden
-def display_game_over():
+def display_game_over(score):
     font = pygame.font.SysFont(None, 48)
     game_over_text = font.render("GAME OVER", True, (255, 255, 0))
     screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - game_over_text.get_height() // 2))
     
-    # Schriftart für die Buttons
-    button_font = pygame.font.SysFont(None, 30)
+    # Anzeigen der besten 3 Highscores
+    highscores = load_highscores()
+    font = pygame.font.SysFont(None, 30)
+    for i, (name, highscore) in enumerate(highscores[:3], start=1):
+        score_text = font.render(f"{i}. {name}: {highscore}", True, (255, 255, 255))
+        screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, HEIGHT // 2 + 30 + 30 * i))
     
-    # Button "Neu starten"
-    restart_button = pygame.Rect(WIDTH // 4, HEIGHT // 2 + 50, WIDTH // 4, 50)
-    pygame.draw.rect(screen, (0, 255, 0), restart_button)
-    restart_text = button_font.render("Neu starten", True, (0, 0, 0))
-    screen.blit(restart_text, (restart_button.centerx - restart_text.get_width() // 2, restart_button.centery - restart_text.get_height() // 2))
-    
-    # Button "Beenden"
-    quit_button = pygame.Rect(WIDTH // 2 + WIDTH // 4, HEIGHT // 2 + 50, WIDTH // 4, 50)
-    pygame.draw.rect(screen, (255, 0, 0), quit_button)
-    quit_text = button_font.render("Beenden", True, (0, 0, 0))
-    screen.blit(quit_text, (quit_button.centerx - quit_text.get_width() // 2, quit_button.centery - quit_text.get_height() // 2))
+    # Eingabeaufforderung für den Namen des Spielers
+    input_rect = pygame.Rect(WIDTH // 4, HEIGHT // 2 + 30 * 6, WIDTH // 2, 30)
+    pygame.draw.rect(screen, (255, 255, 255), input_rect, 2)
+    font = pygame.font.SysFont(None, 24)
+    input_text = font.render("Deinen Namen eingeben:", True, (255, 255, 255))
+    screen.blit(input_text, (WIDTH // 4, HEIGHT // 2 + 30 * 5))
     
     pygame.display.flip()
     
-    while True:
+    name = ""
+    input_active = True
+    while input_active:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = pygame.mouse.get_pos()
-                if restart_button.collidepoint(mouse_pos):
-                    return True  # Neustart auswählen
-                elif quit_button.collidepoint(mouse_pos):
-                    pygame.quit()
-                    sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    input_active = False
+                elif event.key == pygame.K_BACKSPACE:
+                    name = name[:-1]
+                else:
+                    name += event.unicode
+        input_rect.w = max(200, input_text.get_width() + 10)
+        input_rect.x = WIDTH // 2 - input_rect.w // 2
+        pygame.draw.rect(screen, (0, 0, 0), input_rect)
+        pygame.draw.rect(screen, (255, 255, 255), input_rect, 2)
+        screen.blit(font.render(name, True, (255, 255, 255)), (input_rect.x + 5, input_rect.y + 5))
+        pygame.display.flip()
+    
+    # Füge den neuen Highscore hinzu und speichere ihn
+    highscores.append((name, str(score)))
+    highscores.sort(key=lambda x: int(x[1]), reverse=True)
+    save_highscores(highscores)
 
 # Funktion zum Zeichnen von Schüssen
 def draw_shots(shots):
@@ -96,103 +128,127 @@ def display_score(score):
     score_text = font.render("Score: " + str(score), True, (255,255,255))
     screen.blit(score_text, (10, 10))
 
-# Hauptspiel
-def main():
-    player = pygame.Rect(WIDTH // 2 - PLAYER_WIDTH // 2, HEIGHT - 50, PLAYER_WIDTH, PLAYER_HEIGHT)
-    enemies = []
-    shots = []  # Liste für die Schüsse des Spielers
-    shoot_cooldown = 0
-    score = 0   # Score des Spielers
-    score_timer = 0 # Initialisierung des Score-Timers
+# Funktion zur Anzeige des Neustartmenüs
+def display_restart_menu():
+    font = pygame.font.SysFont(None, 30)
+    restart_text = font.render("Drücke R zum Neustarten oder Q zum Beenden", True, (255, 255, 255))
+    screen.blit(restart_text, (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT - 50))
+    pygame.display.flip()
 
-    running = True
-    game_over = False  # Spielstatus verfolgen
-
-    while running:
-        screen.blit(background, (0, 0)) # Hintergrund zeichnen
-
+    waiting = True
+    while waiting:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.MOUSEMOTION:
-                # Spieler mit Maus bewegen
-                player.centerx, player.centery = event.pos
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not game_over:
-                # Schießen, wenn linke Maustaste gedrückt wird
-                if shoot_cooldown == 0:
-                    shots.append(pygame.Rect(player.centerx - 2, player.top - 10, 4, 10))
-                    shoot_cooldown = PLAYER_SHOOT_COOLDOWN
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    return True  # Starte das Spiel neu
+                elif event.key == pygame.K_q:
+                    pygame.quit()
+                    sys.exit()  # Beende das Spiel
+    return False
 
-        if not game_over:
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_LEFT]:
-                player.x -= PLAYER_SPEED
-            if keys[pygame.K_RIGHT]:
-                player.x += PLAYER_SPEED
+# Hauptspiel
+def main():
+    while True:  # Spielenschleife für Neustarts
+        player = pygame.Rect(WIDTH // 2 - PLAYER_WIDTH // 2, HEIGHT - 50, PLAYER_WIDTH, PLAYER_HEIGHT)
+        enemies = []
+        shots = []  # Liste für die Schüsse des Spielers
+        shoot_cooldown = 0
+        score = 0   # Score des Spielers
+        score_timer = 0 # Initialisierung des Score-Timers
 
-            # Begrenze den Spieler auf den Bildschirm
-            player.x = max(0, min(player.x, WIDTH - PLAYER_WIDTH))
-            player.y = max(0, min(player.top, HEIGHT - PLAYER_HEIGHT))
+        running = True
+        game_over = False  # Spielstatus verfolgen
 
-            # Bewege die Gegner und füge neue hinzu
-            move_enemies(enemies)
-            if random.randint(0, ENEMY_INTERVAL) == 0:
-                enemy, enemy_type = create_enemy()
-                enemies.append((enemy, enemy_type))
+        while running:
+            screen.blit(background, (0, 0)) # Hintergrund zeichnen
 
-            # Bewege Schüsse und entferne sie, wenn sie den Bildschirm verlassen
-            for shot in shots[:]:
-                shot.y -= 5
-                if shot.bottom < 0:
-                    shots.remove(shot)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEMOTION:
+                    # Spieler mit Maus bewegen
+                    player.centerx, player.centery = event.pos
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not game_over:
+                    # Schießen, wenn linke Maustaste gedrückt wird
+                    if shoot_cooldown == 0:
+                        shots.append(pygame.Rect(player.centerx - 2, player.top - 10, 4, 10))
+                        shoot_cooldown = PLAYER_SHOOT_COOLDOWN
 
-            # Kollisionserkennung für Schüsse und Gegner
-            for shot in shots[:]:
-                for enemy in enemies[:]:
-                    if shot.colliderect(enemy[0]):
+            if not game_over:
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_LEFT]:
+                    player.x -= PLAYER_SPEED
+                if keys[pygame.K_RIGHT]:
+                    player.x += PLAYER_SPEED
+
+                # Begrenze den Spieler auf den Bildschirm
+                player.x = max(0, min(player.x, WIDTH - PLAYER_WIDTH))
+                player.y = max(0, min(player.top, HEIGHT - PLAYER_HEIGHT))
+
+                # Bewege die Gegner und füge neue hinzu
+                move_enemies(enemies)
+                if random.randint(0, ENEMY_INTERVAL) == 0:
+                    enemy, enemy_type = create_enemy()
+                    enemies.append((enemy, enemy_type))
+
+                # Bewege Schüsse und entferne sie, wenn sie den Bildschirm verlassen
+                for shot in shots[:]:
+                    shot.y -= 5
+                    if shot.bottom < 0:
                         shots.remove(shot)
-                        enemies.remove(enemy)
 
-            # Kollisionserkennung für Spieler und Gegner
-            for enemy in enemies:
-                if player.colliderect(enemy[0]):
-                    game_over = True  # Spielstatus aktualisieren
+                # Kollisionserkennung für Schüsse und Gegner
+                for shot in shots[:]:
+                    for enemy in enemies[:]:
+                        if shot.colliderect(enemy[0]):
+                            shots.remove(shot)
+                            enemies.remove(enemy)
 
-            # Zeichne Spieler
-            screen.blit(player_image, player)
+                # Kollisionserkennung für Spieler und Gegner
+                for enemy in enemies:
+                    if player.colliderect(enemy[0]):
+                        game_over = True  # Spielstatus aktualisieren
 
-            # Zeichne Gegner
-            for enemy, enemy_type in enemies:
-                if enemy_type == 1:
-                    screen.blit(enemy1_image, enemy)
-                else:
-                    screen.blit(enemy2_image, enemy)
+                # Zeichne Spieler
+                screen.blit(player_image, player)
 
-            # Zeichne Schüsse
-            draw_shots(shots)
+                # Zeichne Gegner
+                for enemy, enemy_type in enemies:
+                    if enemy_type == 1:
+                        screen.blit(enemy1_image, enemy)
+                    else:
+                        screen.blit(enemy2_image, enemy)
 
-            # Reduziere die Abklingzeit für Schüsse
-            if shoot_cooldown > 0:
-                shoot_cooldown -= 1
+                # Zeichne Schüsse
+                draw_shots(shots)
 
-             # Aktualisiere den Score-Timer und füge Bonuspunkte hinzu, wenn der Timer abläuft
-            score_timer += 1
-            if score_timer == 60:  # Füge alle 60 Frames (1 Sekunde) Bonuspunkte hinzu
-                score += 5
-                score_timer = 0
+                # Reduziere die Abklingzeit für Schüsse
+                if shoot_cooldown > 0:
+                    shoot_cooldown -= 1
 
-            # Zeichne Score
-            display_score(score)
+                 # Aktualisiere den Score-Timer und füge Bonuspunkte hinzu, wenn der Timer abläuft
+                score_timer += 1
+                if score_timer == 60:  # Füge alle 60 Frames (1 Sekunde) Bonuspunkte hinzu
+                    score += 5
+                    score_timer = 0
 
-        if game_over:
-            if display_game_over():
-                # Wenn "Neu starten" ausgewählt wurde, setze das Spiel zurück
-                main()
-            else:
+                # Zeichne Score
+                display_score(score)
+
+            if game_over:
+                display_game_over(score)
                 running = False
 
-        pygame.display.flip()
-        clock.tick(60)
+            pygame.display.flip()
+            clock.tick(60)
+
+        # Anzeige des Neustartmenüs und Verarbeitung der Benutzeraktionen
+        if not display_restart_menu():
+            break  # Beende die Schleife, wenn der Benutzer das Spiel beendet
 
     pygame.quit()
 
