@@ -116,6 +116,11 @@ def display_game_over(score):
     highscores.append((name, str(score)))
     highscores.sort(key=lambda x: int(x[1]), reverse=True)
     save_highscores(highscores)
+    
+    # Anzeige des Neustartmenüs und Verarbeitung der Benutzeraktionen
+    display_restart_menu()
+
+
 
 # Funktion zum Zeichnen von Schüssen
 def draw_shots(shots):
@@ -132,7 +137,8 @@ def display_score(score):
 def display_restart_menu():
     font = pygame.font.SysFont(None, 30)
     restart_text = font.render("Drücke R zum Neustarten oder Q zum Beenden", True, (255, 255, 255))
-    screen.blit(restart_text, (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT - 50))
+    text_width, text_height = font.size("Drücke R zum Neustarten oder Q zum Beenden")
+    screen.blit(restart_text, ((WIDTH - text_width) // 2, HEIGHT // 2 - text_height - 20))  # Position über dem "GAME OVER"-Schriftzug
     pygame.display.flip()
 
     waiting = True
