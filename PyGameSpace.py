@@ -186,6 +186,13 @@ def main():
     # Timer für Sterne
     star_timer = 0
 
+    paused = False  # Variable für den Pausenzustand des Spiels
+
+    # PAUSE-Text anzeigen
+    font = pygame.font.SysFont(None, 48)
+    pause_text = font.render("PAUSE", True, (255, 255, 0))  # Gelber Text
+    pause_text_rect = pause_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+
     while True:  # Spielenschleife für Neustarts
         player = pygame.Rect(WIDTH // 2 - PLAYER_WIDTH // 2, HEIGHT - 50, PLAYER_WIDTH, PLAYER_HEIGHT)
         enemies = []
@@ -216,6 +223,14 @@ def main():
                     if shoot_cooldown == 0:
                         shots.append(pygame.Rect(player.centerx - 2, player.top - 10, 4, 10))
                         shoot_cooldown = PLAYER_SHOOT_COOLDOWN
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:  # Pausentaste
+                        paused = not paused
+
+            if paused:
+                screen.blit(pause_text, pause_text_rect) # PAUSE-Text anzeigen
+                pygame.display.flip()
+                continue  # Springe zurück zur Schleifenbeginn
 
             if not game_over:
                 keys = pygame.key.get_pressed()
