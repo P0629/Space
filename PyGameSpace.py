@@ -19,7 +19,12 @@ ENEMY_WIDTH, ENEMY_HEIGHT = 30, 30
 ENEMY_SPEED = 3
 ENEMY_INTERVAL = 60  # Intervall, in dem ein neuer Gegner erscheint
 
-# Laden der Bilder für den Spieler und die Gegner
+# Sterne Eigenschaften
+STAR_WIDTH, STAR_HEIGHT = 20, 20
+STAR_SPEED = 2
+STAR_INTERVAL = 100  # Intervall, in dem ein neuer Stern erscheint
+
+# Laden der Bilder für den Spieler, die Gegner und die Sterne
 player_image = pygame.image.load("schiff.png")
 player_image = pygame.transform.scale(player_image, (PLAYER_WIDTH, PLAYER_HEIGHT))
 
@@ -28,6 +33,9 @@ enemy1_image = pygame.transform.scale(enemy1_image, (ENEMY_WIDTH, ENEMY_HEIGHT))
 
 enemy2_image = pygame.image.load("alien2.png")
 enemy2_image = pygame.transform.scale(enemy2_image, (ENEMY_WIDTH, ENEMY_HEIGHT))
+
+star_image = pygame.image.load("Stern.png")
+star_image = pygame.transform.scale(star_image, (STAR_WIDTH, STAR_HEIGHT))
 
 # Laden des Hintergrunds
 background = pygame.image.load("background.jpg")
@@ -64,10 +72,21 @@ def create_enemy():
     enemy_type = random.choice([1, 2])  # Zufällig zwischen den beiden Gegnertypen wählen
     return pygame.Rect(x, y, ENEMY_WIDTH, ENEMY_HEIGHT), enemy_type
 
+# Funktion zum Erzeugen eines neuen Sterns
+def create_star():
+    x = random.randint(0, WIDTH - STAR_WIDTH)
+    y = 0 - STAR_HEIGHT
+    return pygame.Rect(x, y, STAR_WIDTH, STAR_HEIGHT)
+
 # Funktion zum Bewegen der Gegner
 def move_enemies(enemies):
     for enemy in enemies:
         enemy[0].y += ENEMY_SPEED
+
+# Funktion zum Bewegen der Sterne
+def move_stars(stars):
+    for star in stars:
+        star.y += STAR_SPEED
 
 # Funktion um GAME OVER anzuzeigen und Optionen für Neustart oder Beenden
 def display_game_over(score):
@@ -120,8 +139,6 @@ def display_game_over(score):
     # Anzeige des Neustartmenüs und Verarbeitung der Benutzeraktionen
     display_restart_menu()
 
-
-
 # Funktion zum Zeichnen von Schüssen
 def draw_shots(shots):
     for shot in shots:
@@ -166,9 +183,13 @@ def main():
     enemy_speed_increase_interval = 5000 # Timerintervall für die Geschwindigkeitserhöhung
     enemy_speed_increase_amount = 1 # Betrag, um den die Geschwindigkeit des Feindes erhöht wird
 
+    # Timer für Sterne
+    star_timer = 0
+
     while True:  # Spielenschleife für Neustarts
         player = pygame.Rect(WIDTH // 2 - PLAYER_WIDTH // 2, HEIGHT - 50, PLAYER_WIDTH, PLAYER_HEIGHT)
         enemies = []
+        stars = []  # Liste für die Sterne
         shots = []  # Liste für die Schüsse des Spielers
         shoot_cooldown = 0
         score = 0   # Score des Spielers
@@ -213,6 +234,13 @@ def main():
                     enemy, enemy_type = create_enemy()
                     enemies.append((enemy, enemy_type))
                 
+                # Bewege die Sterne und füge neue hinzu
+                move_stars(stars)
+                star_timer += 1
+                if star_timer == STAR_INTERVAL:
+                    stars.append(create_star())
+                    star_timer = 0
+                
                 # Erhöhe die Geschwindigkeit der Feinde basierend auf den Timer
                 enemy_speed_increase_timer += clock.get_time()
                 if enemy_speed_increase_timer >= enemy_speed_increase_interval:
@@ -236,6 +264,12 @@ def main():
                 for enemy in enemies:
                     if player.colliderect(enemy[0]):
                         game_over = True  # Spielstatus aktualisieren
+                
+                # Kollisionserkennung für Spieler und Sterne
+                for star in stars[:]:
+                    if player.colliderect(star):
+                        stars.remove(star)
+                        score += 10  # Bonuspunkte für das Einsammeln eines Sterns
 
                 # Zeichne Spieler
                 screen.blit(player_image, player)
@@ -247,6 +281,10 @@ def main():
                     else:
                         screen.blit(enemy2_image, enemy)
 
+                # Zeichne Sterne
+                for star in stars:
+                    screen.blit(star_image, star)
+
                 # Zeichne Schüsse
                 draw_shots(shots)
 
@@ -254,7 +292,7 @@ def main():
                 if shoot_cooldown > 0:
                     shoot_cooldown -= 1
 
-                 # Aktualisiere den Score-Timer und füge Bonuspunkte hinzu, wenn der Timer abläuft
+                # Aktualisiere den Score-Timer und füge Bonuspunkte hinzu, wenn der Timer abläuft
                 score_timer += 1
                 if score_timer == 60:  # Füge alle 60 Frames (1 Sekunde) Bonuspunkte hinzu
                     score += 5
