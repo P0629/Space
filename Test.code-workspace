@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "../Test"
+		},
+		{
+			"path": "../Labor_IT2"
+		},
+		{
+			"path": "../Dragonwood_Test"
+		},
+		{
+			"name": "Space",
+			"path": "../Test/Space"
+		}
+	],
+	"settings": {}
+}
